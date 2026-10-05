@@ -16,16 +16,11 @@ void Collider::recaclAABB() noexcept {
 	}
    
 	auto* rb = getObject()->rigidBody();
-	if (rb) {
-		_worldAABB.center = rb->getPosition();
-	} else {
-	    _worldAABB.center = getObject()->transform().getWorldPosition();
-	}
-
-	_worldAABB.center += _localAABB.center;
    
-	const Mxm::Mat4& worldMatrix = getObject()->transform().getWorldMatrix();
+	const Mxm::Mat4& worldMatrix = rb ? rb->getPhysicsWorldMatrix() : getObject()->transform().getWorldMatrix();
+	
 	_worldAABB.extent = (worldMatrix.abs() * Mxm::Vec4(_localAABB.extent, 0.0f)).toVec3();
+	_worldAABB.center = (worldMatrix * Mxm::Vec4(_localAABB.center, 1.0f)).toVec3();
 }
 
 AABB Collider::calculateAABBFromMesh(const std::vector<Mxm::Vec3>& vertices) noexcept {
