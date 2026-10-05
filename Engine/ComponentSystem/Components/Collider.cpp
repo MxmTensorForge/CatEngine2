@@ -21,6 +21,8 @@ void Collider::recaclAABB() noexcept {
 	
 	_worldAABB.extent = (worldMatrix.abs() * Mxm::Vec4(_localAABB.extent, 0.0f)).toVec3();
 	_worldAABB.center = (worldMatrix * Mxm::Vec4(_localAABB.center, 1.0f)).toVec3();
+
+	_worldAABB.extent += Mxm::Vec3(0.04f);
 }
 
 AABB Collider::calculateAABBFromMesh(const std::vector<Mxm::Vec3>& vertices) noexcept {
@@ -72,7 +74,7 @@ void Collider::generateLocalAABB() noexcept {
     min.z = _shape->support(Mxm::Vec3(0.0f, 0.0f, -1.0f)).z;
 
     _localAABB.center = (min + max) * 0.5f;
-    _localAABB.extent = (max - min) * 0.5f + 0.03f;
+    _localAABB.extent = (max - min) * 0.5f;
 }
 
 
