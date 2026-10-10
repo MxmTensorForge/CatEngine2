@@ -14,15 +14,20 @@ Mxm::Vec3 CollisionSystem::furthestPoint(const Collider* collider, const Mxm::Ve
 
     return (worldMatrix * Mxm::Vec4(furthestPoint, 1.0f)).toVec3();
 }
-Mxm::Vec3 CollisionSystem::minkowskiDifference(const Collider* collider1, const Collider* collider2, const Mxm::Vec3& dir) {
-    return furthestPoint(collider1, dir) - furthestPoint(collider2, -dir);
+MinkowskiPoint CollisionSystem::minkowskiDifference(const Collider* collider1, const Collider* collider2, const Mxm::Vec3& dir) {
+    MinkowskiPoint point;
+    point.a = furthestPoint(collider1, dir);
+    point.b = furthestPoint(collider2, -dir);
+    point.point = point.a - point.b;
+    
+    return point;
 }
 
 bool CollisionSystem::handleSimplex(Simplex& simplex, Mxm::Vec3& direction) {
-    Mxm::Vec3 a = simplex[0];
-    Mxm::Vec3 b = simplex[1];
-    Mxm::Vec3 ao = -a;
-    Mxm::Vec3 ab = b - a;
+    const MinkowskiPoint& a = simplex[0];
+    const MinkowskiPoint& b = simplex[1];
+    Mxm::Vec3 ao = -a.toVec3();
+    Mxm::Vec3 ab = b.toVec3() - a.toVec3();
 
     if (simplex.size() == 2) {
         direction = ab.cross(ao).cross(ab);
@@ -30,8 +35,8 @@ bool CollisionSystem::handleSimplex(Simplex& simplex, Mxm::Vec3& direction) {
         return true;
     }
     else if (simplex.size() == 3) {
-        Mxm::Vec3 c = simplex[2];
-        Mxm::Vec3 ac = c - a;
+        const MinkowskiPoint& c = simplex[2];
+        Mxm::Vec3 ac = c.toVec3() - a.toVec3();
         Mxm::Vec3 abc = ab.cross(ac);
 
         Mxm::Vec3 abPerp = ab.cross(abc);
@@ -59,11 +64,11 @@ bool CollisionSystem::handleSimplex(Simplex& simplex, Mxm::Vec3& direction) {
         return true;
     }
     else if (simplex.size() == 4) {
-        Mxm::Vec3 c = simplex[2];
-        Mxm::Vec3 d = simplex[3];
+        const MinkowskiPoint& c = simplex[2];
+        const MinkowskiPoint& d = simplex[3];
 
-        Mxm::Vec3 ac = c - a;
-        Mxm::Vec3 ad = d - a;
+        Mxm::Vec3 ac = c.toVec3() - a.toVec3();
+        Mxm::Vec3 ad = d.toVec3() - a.toVec3();
 
         Mxm::Vec3 abc = ab.cross(ac);
         if (abc.dot(ao) > 0.0f) {
@@ -95,13 +100,13 @@ bool CollisionSystem::handleSimplex(Simplex& simplex, Mxm::Vec3& direction) {
     return false;
 }
 
-std::pair<Triangle, float> CollisionSystem::findClosestFace(const Polytope& polytope) {
+std::pair<MinkowskiTriangle, float> CollisionSystem::findClosestFace(const Polytope& polytope) {
     float minDist = std::numeric_limits<float>::max();
-    Triangle closestFace = polytope[0];
+    MinkowskiTriangle closestFace = polytope[0];
 
     for (const auto& face : polytope) {
         Mxm::Vec3 n = face.normal();
-        float dist = n.dot(face[0].toVec3());
+        float dist = n.dot(face[0]);
 
         // гарантирую положительную дистанцию
         if (dist < 0.0f) {
@@ -117,18 +122,18 @@ std::pair<Triangle, float> CollisionSystem::findClosestFace(const Polytope& poly
     return { closestFace, minDist };
 }
 
-void CollisionSystem::expandPolytope(Polytope& polytope, const Mxm::Vec3& newPoint) {
+void CollisionSystem::expandPolytope(Polytope& polytope, const MinkowskiPoint& newPoint) {
     FixedVector<Edge, 64> uniqueEdges;
 
     size_t i = 0;
     while (i < polytope.size()) {
-        Mxm::Vec3 v0 = polytope[i][0].toVec3();
+        const MinkowskiPoint& v0 = polytope[i][0];
     
-        if (polytope[i].normal().dot(newPoint - v0) > 0.0f) {
+        if (polytope[i].normal().dot(newPoint.toVec3() - v0.toVec3()) > 0.0f) {
             std::array<Edge, 3> edges = {
-                Edge{ polytope[i][0].toVec3(), polytope[i][1].toVec3() },
-                Edge{ polytope[i][1].toVec3(), polytope[i][2].toVec3() },
-                Edge{ polytope[i][2].toVec3(), polytope[i][0].toVec3() }
+                Edge{ polytope[i][0], polytope[i][1] },
+                Edge{ polytope[i][1], polytope[i][2] },
+                Edge{ polytope[i][2], polytope[i][0] }
             };
     
             for (const auto& e : edges) {
@@ -152,17 +157,17 @@ void CollisionSystem::expandPolytope(Polytope& polytope, const Mxm::Vec3& newPoi
     }
 
     for (const auto& e : uniqueEdges) {
-        polytope.push_back(Triangle(e.a, e.b, newPoint));
+        polytope.push_back(MinkowskiTriangle(e.a, e.b, newPoint));
     }
 }
 std::pair<bool, Simplex> CollisionSystem::gjkCollision(const Collider* collider1, const Collider* collider2) {
     Mxm::Vec3 direction = Mxm::Vec3(1.0f, 1.0f, 1.0f);
-    Mxm::Vec3 support = minkowskiDifference(collider1, collider2, direction);
+    MinkowskiPoint support = minkowskiDifference(collider1, collider2, direction);
 
     Simplex simplex;
     simplex.push_front(support);
 
-    direction = -support;
+    direction = -support.toVec3();
 
     int iters = 0;
     while (iters < 32) {
@@ -184,23 +189,36 @@ std::pair<bool, Simplex> CollisionSystem::gjkCollision(const Collider* collider1
 CollisionResult CollisionSystem::epaAlgorithm(const Collider* collider1, const Collider* collider2, const Simplex& simplex) {
     Polytope polytope;
 
-    polytope.push_back(Triangle(simplex[0], simplex[1], simplex[2]));
-    polytope.push_back(Triangle(simplex[0], simplex[3], simplex[1]));
-    polytope.push_back(Triangle(simplex[0], simplex[2], simplex[3]));
-    polytope.push_back(Triangle(simplex[1], simplex[3], simplex[2]));
+    polytope.push_back(MinkowskiTriangle(simplex[0], simplex[1], simplex[2]));
+    polytope.push_back(MinkowskiTriangle(simplex[0], simplex[3], simplex[1]));
+    polytope.push_back(MinkowskiTriangle(simplex[0], simplex[2], simplex[3]));
+    polytope.push_back(MinkowskiTriangle(simplex[1], simplex[3], simplex[2]));
 
     for (int i = 0; i < 24; i++) {
         auto [closestFace, closestDist] = findClosestFace(polytope);
-        Mxm::Vec3 newPoint = minkowskiDifference(collider1, collider2, closestFace.normal());
+        MinkowskiPoint newPoint = minkowskiDifference(collider1, collider2, closestFace.normal());
 
         float newDist = closestFace.normal().dot(newPoint);
         if (newDist - closestDist < 0.01f) {
-            return CollisionResult{ closestFace.normal(), closestDist };
+            Mxm::Vec3 origin = Mxm::Vec3(0.0f);
+            Mxm::Vec3 projBaryOrigin = closestFace.getProjBaryCoords(origin);
+
+            Mxm::Vec3 contactA = closestFace[0].a * projBaryOrigin.x + closestFace[1].a * projBaryOrigin.y + closestFace[2].a * projBaryOrigin.z;
+            Mxm::Vec3 contactB = closestFace[0].b * projBaryOrigin.x + closestFace[1].b * projBaryOrigin.y + closestFace[2].b * projBaryOrigin.z;
+            
+            return CollisionResult{ closestFace.normal(), closestDist, contactA, contactB };
         }
 
         expandPolytope(polytope, newPoint);
     }
     
     auto [closestFace, closestDist] = findClosestFace(polytope);
-    return CollisionResult{ closestFace.normal(), closestDist };
+
+    Mxm::Vec3 origin = Mxm::Vec3(0.0f);
+    Mxm::Vec3 projBaryOrigin = closestFace.getProjBaryCoords(origin);
+
+    Mxm::Vec3 contactA = closestFace[0].a * projBaryOrigin.x + closestFace[1].a * projBaryOrigin.y + closestFace[2].a * projBaryOrigin.z;
+    Mxm::Vec3 contactB = closestFace[0].b * projBaryOrigin.x + closestFace[1].b * projBaryOrigin.y + closestFace[2].b * projBaryOrigin.z;
+    
+    return CollisionResult{ closestFace.normal(), closestDist, contactA, contactB };
 }
