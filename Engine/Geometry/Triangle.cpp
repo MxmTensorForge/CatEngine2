@@ -2,42 +2,29 @@
 
 #include "../Mxm/Mat3.h"
 
-Triangle::Triangle(const Mxm::Vec4& vert0, const Mxm::Vec4& vert1, const Mxm::Vec4& vert2) : _vertices{ vert0, vert1, vert2 } {
-	calcNormal();
-}
-Triangle::Triangle(const Mxm::Vec3& vert0, const Mxm::Vec3& vert1, const Mxm::Vec3& vert2) : _vertices{ Mxm::Vec4(vert0, 1.0f), Mxm::Vec4(vert1, 1.0f), Mxm::Vec4(vert2, 1.0f) } {
-	calcNormal();
-}
-Triangle::Triangle(const Mxm::Vec4& vert0, const Mxm::Vec4& vert1, const Mxm::Vec4& vert2, Color col) : _vertices{ vert0, vert1, vert2 }, _color(col) {
-	calcNormal();
-}
-Triangle::Triangle(const Mxm::Vec3& vert0, const Mxm::Vec3& vert1, const Mxm::Vec3& vert2, Color col) : _vertices{ Mxm::Vec4(vert0, 1.0f), Mxm::Vec4(vert1, 1.0f), Mxm::Vec4(vert2, 1.0f) }, _color(col) {
+Triangle::Triangle(const Mxm::Vec3& vert0, const Mxm::Vec3& vert1, const Mxm::Vec3& vert2) : _vertices{ vert0, vert1, vert2 } {
 	calcNormal();
 }
 
-void Triangle::calcNormal() noexcept {
-	Mxm::Vec3 edge1 = (_vertices[1] - _vertices[0]).toVec3();
-	Mxm::Vec3 edge2 = (_vertices[2] - _vertices[0]).toVec3();
-
-	_normal = edge1.cross(edge2).normalized();
-}
-
-const Mxm::Vec4& Triangle::operator[](size_t i) const noexcept {
+const Mxm::Vec3& Triangle::operator[](size_t i) const noexcept {
 	return _vertices[i];
 }
 
-const Color Triangle::color() const noexcept {
-	return _color;
+void Triangle::calcNormal() noexcept {
+	Mxm::Vec3 edge1 = _vertices[1] - _vertices[0];
+	Mxm::Vec3 edge2 = _vertices[2] - _vertices[0];
+
+	_normal = edge1.cross(edge2).normalized();
 }
 const Mxm::Vec3& Triangle::normal() const noexcept {
 	return _normal;
 }
 
 bool Triangle::intersection(const Mxm::Vec3& origin, const Mxm::Vec3& dir, Mxm::Vec3& outPoint, float& d) const noexcept {
-	Mxm::Vec3 edge1 = (_vertices[1] - _vertices[0]).toVec3();
-	Mxm::Vec3 edge2 = (_vertices[2] - _vertices[0]).toVec3();
+	Mxm::Vec3 edge1 = _vertices[1] - _vertices[0];
+	Mxm::Vec3 edge2 = _vertices[2] - _vertices[0];
 
-	Mxm::Vec3 to = origin - (_vertices[0]).toVec3();
+	Mxm::Vec3 to = origin - _vertices[0];
 
 	Mxm::Mat3 mat = Mxm::Mat3(
 		edge1.x, edge2.x, -dir.x,
@@ -58,10 +45,42 @@ bool Triangle::intersection(const Mxm::Vec3& origin, const Mxm::Vec3& dir, Mxm::
 
 void Triangle::applyMatrix(const Mxm::Mat4& mat, bool recalculateNormal) noexcept {
 	for (auto& v : _vertices) {
-		v = mat * v;
+		v = (mat * Mxm::Vec4(v, 1.0f)).toVec3();
 	}
 	if (recalculateNormal) calcNormal();
 }
 Triangle Triangle::operator*(const Mxm::Mat4& matrix) const noexcept {
-	return Triangle(matrix * _vertices[0], matrix * _vertices[1], matrix * _vertices[2], _color);
+    Triangle tri = *this;
+    tri.applyMatrix(matrix, true);
+    
+	return tri;
+}
+
+Mxm::Vec3 Triangle::getProjBaryCoords(const Mxm::Vec3& point) const noexcept {
+    const Mxm::Vec3& a = _vertices[0];
+    const Mxm::Vec3& b = _vertices[1];
+    const Mxm::Vec3& c = _vertices[2];
+
+    Mxm::Vec3 v0 = b - a;
+    Mxm::Vec3 v1 = c - a;
+    Mxm::Vec3 v2 = point - a;
+
+    float d00 = v0.dot(v0);
+    float d01 = v0.dot(v1);
+    float d11 = v1.dot(v1);
+    float d20 = v2.dot(v0);
+    float d21 = v2.dot(v1);
+
+    float denom = d00 * d11 - d01 * d01;
+
+    if (fabsf(denom) < Mxm::Consts::EPS) {
+        return Mxm::Vec3(1.0f, 0.0f, 0.0f);
+    }
+
+    float v = (d11 * d20 - d01 * d21) / denom;
+    float w = (d00 * d21 - d01 * d20) / denom;
+    
+    float u = 1.0f - v - w;
+
+    return Mxm::Vec3(u, v, w);
 }

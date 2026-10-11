@@ -1,10 +1,9 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "../Component.h"
+#include "../../Mxm/Mat4.h"
 
-#include "../../Geometry/Triangle.h"
-#include "../../Geometry/Plane.h"
+#include "../Component.h"
 #include <vector>
 
 class MeshComponent;

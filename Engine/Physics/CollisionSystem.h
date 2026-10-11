@@ -8,6 +8,7 @@
 
 #include <utility>
 #include <vector>
+#include <cstdint>
 
 class Collider;
 class RigidBody;
@@ -15,16 +16,20 @@ class RigidBody;
 class CollisionSystem final
 {
 private:
-    struct Edge
+    struct Edge final
     {
-        MinkowskiPoint a, b;
+        uint32_t a, b;
         Edge reversed() const { return Edge{ b, a }; }
 
         bool operator==(const Edge& other) const {
-            return (a.point == other.a.point && b.point == other.b.point);
+            return (a == other.a && b == other.b);
         }
     };
-    using Polytope = FixedVector<MinkowskiTriangle, 64>;
+    struct Polytope final
+    {
+        FixedVector<MinkowskiPoint, 32> vertices;
+        FixedVector<MinkowskiTriangle, 128> triangles;
+    };
 
     Mxm::Vec3 furthestPoint(const Collider* collider, const Mxm::Vec3& dir);
     MinkowskiPoint minkowskiDifference(const Collider* collider1, const Collider* collider2, const Mxm::Vec3& dir);

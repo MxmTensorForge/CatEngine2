@@ -1,33 +1,41 @@
 #ifndef MINKOWSKITRIANGLE_H
 #define MINKOWSKITRIANGLE_H
 
+#include <cstdint>
+
 #include "MinkowskiPoint.h"
+#include "FixedVector.h"
 
 class MinkowskiTriangle
 {
 private:
-    MinkowskiPoint _vertices[3];
+    uint32_t _vertices[3];
     Mxm::Vec3 _normal{};
 public:
     MinkowskiTriangle() = default;
     ~MinkowskiTriangle() = default;
 
-    MinkowskiTriangle(const MinkowskiPoint& vert0, const MinkowskiPoint& vert1, const MinkowskiPoint& vert2) : _vertices{ vert0, vert1, vert2 } { calcNormal(); }
+    template<size_t  N>
+    MinkowskiTriangle(uint32_t vert0, uint32_t vert1, uint32_t vert2, const FixedVector<MinkowskiPoint, N>& points)
+        : _vertices{ vert0, vert1, vert2 } { calcNormal(points); }
 
-    const MinkowskiPoint& operator[](size_t i) const noexcept { return _vertices[i]; }
-    MinkowskiPoint& operator[](size_t i) noexcept { return _vertices[i]; }
+    const uint32_t& operator[](size_t i) const noexcept { return _vertices[i]; }
+    uint32_t& operator[](size_t i) noexcept { return _vertices[i]; }
 
-    void calcNormal() noexcept {
-        Mxm::Vec3 edge1 = _vertices[1].point - _vertices[0].point;
-        Mxm::Vec3 edge2 = _vertices[2].point - _vertices[0].point;
+    template<size_t  N>
+    void calcNormal(const FixedVector<MinkowskiPoint, N>& points) noexcept {
+        Mxm::Vec3 edge1 = points[_vertices[1]].point - points[_vertices[0]].point;
+        Mxm::Vec3 edge2 = points[_vertices[2]].point - points[_vertices[0]].point;
         _normal = edge1.cross(edge2).normalized();
     }
+    
     const Mxm::Vec3& normal() const noexcept { return _normal; }
 
-    Mxm::Vec3 getProjBaryCoords(const Mxm::Vec3& point) const noexcept {
-        const Mxm::Vec3& a = _vertices[0];
-        const Mxm::Vec3& b = _vertices[1];
-        const Mxm::Vec3& c = _vertices[2];
+    template<size_t  N>
+    Mxm::Vec3 getProjBaryCoords(const Mxm::Vec3& point, const FixedVector<MinkowskiPoint, N>& points) const noexcept {
+        const Mxm::Vec3& a = points[_vertices[0]];
+        const Mxm::Vec3& b = points[_vertices[1]];
+        const Mxm::Vec3& c = points[_vertices[2]];
     
         Mxm::Vec3 v0 = b - a;
         Mxm::Vec3 v1 = c - a;
