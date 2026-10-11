@@ -29,8 +29,6 @@ private:
 
 	Color _backgroundColor = Color();
 	Color _ambientColor = Color();
-
-	void updateRecursive(Transform* transform);
 public:
 	Scene() = default;
 	~Scene() = default;

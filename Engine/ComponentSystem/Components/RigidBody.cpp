@@ -39,6 +39,8 @@ void RigidBody::init() {
     _currentPhysicsPos = getObject()->transform().getPosition();
 }
 void RigidBody::fixedUpdate() {
+    if (!_isSimulated) return;
+    
 	Mxm::Vec3 acceleration = _gravity;
 	_velocity += acceleration * Time::fixedDeltaTime();
 

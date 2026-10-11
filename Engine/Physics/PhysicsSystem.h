@@ -1,6 +1,8 @@
 #ifndef PHYSICSSYSTEM_H
 #define PHYSICSSYSTEM_H
 
+#include <memory>
+
 #include <Engine/ComponentSystem/Object/GameObject.h>
 #include <Engine/ComponentSystem/Components/Collider.h>
 
@@ -31,7 +33,7 @@ public:
 		return sys;
 	}
 
-	void update(const std::vector<GameObject*> gameObjects);
+	void update(const std::vector<std::unique_ptr<GameObject>>& gameObjects);
 };
 
 #endif

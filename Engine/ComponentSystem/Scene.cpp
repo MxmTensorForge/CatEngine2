@@ -9,7 +9,7 @@
 #include "../Managers/EventManager.h"
 
 void Scene::updateCollisions() {
-    PhysicsSystem::getInstance().update(getGameObjects());
+    PhysicsSystem::getInstance().update(_gameObjects);
 }
 
 GameObject* Scene::createObject(const std::string& name, const std::string& tag) {
@@ -87,17 +87,6 @@ void Scene::removeObjectsWithName(const std::string& name) {
     }
 }
 
-void Scene::updateRecursive(Transform* transform) {
-    if (!transform) return;
-
-    transform->getOwner()->updateComponents();
-
-    for (auto t : transform->getChildren()) {
-        if (!t) continue;
-        updateRecursive(t);
-    }
-}
-
 void Scene::interpolatePhysics() {
     //Physics interpolating
     for (auto& obj : _gameObjects) {
@@ -116,18 +105,11 @@ void Scene::start() {
     EventManager::getInstance().poll("light_update");
 }
 void Scene::update() {
-    size_t count = _gameObjects.size();
-    
-    for (size_t i = 0; i < count; ++i) {
-        auto* obj = _gameObjects[i].get();
-    
-        if (!obj->getActive())
+    for (auto& obj : _gameObjects) {
+        if (!obj->getActive()) 
             continue;
-    
-        if (obj->transform().getParent())
-            continue;
-    
-        updateRecursive(&obj->transform());
+        
+        obj->updateComponents();
     }
 
     std::erase_if(_gameObjects, [](const std::unique_ptr<GameObject>& obj) {
@@ -138,7 +120,9 @@ void Scene::update() {
 }
 void Scene::fixedUpdate() {
     for (auto& obj : _gameObjects) {
-        if (!obj->getActive()) continue;
+        if (!obj->getActive()) 
+            continue;
+        
         obj->fixedUpdateComponents();
     }
 }

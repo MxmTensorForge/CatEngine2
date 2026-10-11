@@ -79,7 +79,7 @@ void PhysicsSystem::processTriggers() {
     }
 }
 
-void PhysicsSystem::update(const std::vector<GameObject*> gameObjects) {
+void PhysicsSystem::update(const std::vector<std::unique_ptr<GameObject>>& gameObjects) {
     _cachedObjects.clear();
 
     for (auto& obj : gameObjects) {
@@ -89,7 +89,7 @@ void PhysicsSystem::update(const std::vector<GameObject*> gameObjects) {
         if (!collider) continue;
 
         if (obj->rigidBody()) obj->rigidBody()->setIsCollision(false);
-        _cachedObjects.push_back({ obj, collider});
+        _cachedObjects.push_back({ obj.get(), collider});
     }
 
     _previousTriggerObjects = std::move(_currentTriggerObjects);

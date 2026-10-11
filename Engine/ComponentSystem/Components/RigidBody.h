@@ -26,6 +26,7 @@ private:
 	float _restitution = 0.0f;
 
 	bool _isCollision{};
+	bool _isSimulated{true};
 public:
     RigidBody();
 
@@ -60,6 +61,9 @@ public:
 
 	bool isCollision() const noexcept { return _isCollision; }
 	void setIsCollision(bool state) noexcept { _isCollision = state; }
+
+	bool isSimulated() const noexcept { return _isSimulated; }
+	void setIsSimulated(bool state) noexcept { _isSimulated = state; }
 
 	void init() override;
 	void fixedUpdate() override;
