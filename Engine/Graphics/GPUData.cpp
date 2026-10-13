@@ -55,3 +55,8 @@ void GPUData::draw() const noexcept {
 	_vbo->bind();
 	glDrawArrays(GL_TRIANGLES, 0, _verticesCount);
 }
+void GPUData::drawInstanced(size_t count) const noexcept {
+    _vao->bind();
+	_vbo->bind();
+	glDrawArraysInstanced(GL_TRIANGLES, 0, _verticesCount, count);
+}

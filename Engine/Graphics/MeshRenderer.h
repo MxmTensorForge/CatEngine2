@@ -14,6 +14,7 @@
 
 class Camera;
 class Material;
+class MeshComponent;
 
 class PointLight;
 class DirectionLight;
@@ -28,6 +29,8 @@ private:
 
 	std::unique_ptr<VertexArray> _skyboxVAO;
 	std::unique_ptr<Buffer> _skyboxVBO;
+	
+	std::unique_ptr<Buffer> _instanceSSBO;
 public:
 	MeshRenderer();
 	~MeshRenderer();
@@ -42,7 +45,7 @@ public:
 	void setDrawFrame(bool state) const noexcept;
 	void setAmbientColor(Color color) const noexcept;
 
-	void drawMesh(const Mxm::Mat4& model, const Material* material);
+	void drawMeshInstanced(const std::vector<Mxm::Mat4>& models, const MeshComponent* mesh, const Material* material);
 	void drawSkyBox(const SkyBox* skybox);
 };
 

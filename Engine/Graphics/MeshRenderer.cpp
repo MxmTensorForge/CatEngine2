@@ -50,6 +50,8 @@ void MeshRenderer::init() {
 	_skyboxVAO->setAttribute(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	_skyboxVAO->enableAttribute(0);
 
+	_instanceSSBO = std::make_unique<Buffer>(GL_SHADER_STORAGE_BUFFER);
+
 	Logger::getInstance().log(LogType::Message, "Renderer has been successfully initialized");
 }
 void MeshRenderer::update(const Camera* camera,
@@ -117,25 +119,23 @@ void MeshRenderer::setAmbientColor(Color color) const noexcept {
 	_shader->setUniform("uAmbient", color.rf(), color.gf(), color.bf());
 }
 
-void MeshRenderer::drawMesh(const Mxm::Mat4& model, const Material* material) {
-	auto* mesh = material->getObject()->getComponent<MeshComponent>();
-	if (!mesh) return;
-
+void MeshRenderer::drawMeshInstanced(const std::vector<Mxm::Mat4>& models, const MeshComponent* mesh, const Material* material) {
+    if (!mesh || !material) return;
+    
 	_shader->use();
-	_shader->setUniform("uModel", model.data(), true);
-
+   
 	Color color = material->getColor();
 	_shader->setUniform("uColor", color.rf(), color.gf(), color.bf(), color.af());
 	_shader->setUniform("uShininess", material->getShininess());
 	_shader->setUniform("uSpecular", material->getSpecular());
 	_shader->setUniform("uUvScale", material->getUvScale());
-
+   
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 	if (color.a() < 255) {
 		glDepthMask(GL_FALSE);
 	}
-
+   
 	std::string texName = material->getTextureName();
 	if (texName.empty()) {
 		_shader->setUniform("uUseTexture", 0);
@@ -146,14 +146,19 @@ void MeshRenderer::drawMesh(const Mxm::Mat4& model, const Material* material) {
 		_shader->setUniform("uTexture", 0);
 	}
 	_shader->setUniform("uIsShaded", material->isShaded() ? 1 : 0);
-
+   
 	if (material->isTwoSided()) glDisable(GL_CULL_FACE);
 	else glEnable(GL_CULL_FACE);
 
-	mesh->getData()->data.draw();
-	
+	_instanceSSBO->bind();
+	_instanceSSBO->bufferData(models.size() * sizeof(Mxm::Mat4), models.data(), GL_DYNAMIC_DRAW);
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _instanceSSBO->id());
+   
+	mesh->getData()->data.drawInstanced(models.size());
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 	glDepthMask(GL_TRUE);
-	glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
 void MeshRenderer::drawSkyBox(const SkyBox* skybox) {

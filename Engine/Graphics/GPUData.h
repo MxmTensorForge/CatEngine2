@@ -32,6 +32,7 @@ public:
 	void loadData(const std::vector<Mxm::Vec3>& vertices, const std::vector<unsigned int>& indices, const std::vector<Mxm::Vec3>& normals,
 		const std::vector<Mxm::Vec2>& texCoords, const std::vector<unsigned int>& textureIndices);
 	void draw() const noexcept;
+	void drawInstanced(size_t count) const noexcept;
 };
 
 #endif // !GPUDATA_H

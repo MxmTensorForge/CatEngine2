@@ -1,6 +1,8 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include <unordered_map>
+
 #include "Screen.h"
 #include "../Graphics/MeshRenderer.h"
 #include "../UI/UIRenderer.h"
@@ -24,8 +26,7 @@ private:
 	void updatePhysics();
 	void updateGame();
 
-	void renderOpaque();
-	void renderTransparent(GameObject* camera);
+	void renderOpaqueTransparent(GameObject* camera);
 
 	void renderFrame();
 	void renderUI();

@@ -15,8 +15,8 @@ private:
 	float _shininess = 64.0f;
 	float _specular = 0.5f;
 
-	bool _isShaded;
-	bool _isTwoSided;
+	bool _isShaded = true;
+	bool _isTwoSided = false;
 
 	float _uvScale = 1.0f;
 public:
@@ -43,6 +43,9 @@ public:
 
 	void setUvScale(float scale) noexcept { _uvScale = scale; }
 	float getUvScale() const noexcept { return _uvScale; }
+
+	uint64_t generateSignature() const noexcept;
+
 };
 
 #endif
