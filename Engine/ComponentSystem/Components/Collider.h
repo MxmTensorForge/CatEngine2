@@ -26,6 +26,7 @@ private:
 
 	bool _needsRecalcAABB = true;
 	bool _isTrigger = false;
+	bool _isOnlyRaycast = false;
 
 	using TriggerCallback = std::function<void(GameObject*)>;
 	TriggerCallback _triggerOnCallback;
@@ -44,6 +45,7 @@ public:
 
 	void generateLocalAABB() noexcept;
 	const AABB& getLocalAABB() const noexcept { return _localAABB; }
+	const AABB& getWorldAABB() const noexcept { return _worldAABB; }
 
 	template <typename ShapeType, typename... Args>
 	void setColliderShape(Args&&... args) {
@@ -72,6 +74,9 @@ public:
 
 	bool isTrigger() const noexcept { return _isTrigger; }
 	void setTrigger(bool state) noexcept { _isTrigger = state; }
+
+	bool isOnlyRaycast() const noexcept { return _isOnlyRaycast; }
+	void setOnlyRaycast(bool state) noexcept { _isOnlyRaycast = state; }
 };
 
 #endif // !COLLIDER_H

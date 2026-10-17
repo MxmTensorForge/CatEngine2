@@ -21,6 +21,7 @@
 #include "../Utility/MathUtils.h"
 
 #include <algorithm>
+#include <map>
 
 void Application::initialize() {
 	_screen = std::make_unique<Screen>();
@@ -81,27 +82,18 @@ void Application::renderOpaqueTransparent(GameObject* camera) {
 	auto& sceneManager = SceneManager::getInstance();
 	auto activeScene = sceneManager.getActiveScene();
 
-	struct OpaqueRenderItem final
+	struct RenderItem final
 	{
         const MeshComponent* meshComp = nullptr;
 	    const Material* materialComp = nullptr;
 		const Mxm::Mat4* worldMatrix = nullptr;
-		uint64_t batchKey = 0ULL;
-	};
-	struct TransparentRenderItem final
-	{
-        const MeshComponent* meshComp = nullptr;
-	    const Material* materialComp = nullptr;
-		const Mxm::Mat4* worldMatrix = nullptr;
-		uint64_t batchKey = 0ULL;
 		float distance = 0.0f;
+		uint64_t batchKey = 0ULL;
 	};
 
-	static std::vector<OpaqueRenderItem> opaqueQueue;
-	static std::vector<TransparentRenderItem> transparentQueue;
+	static std::map<int, std::vector<RenderItem>> renderQueue;
 
-	opaqueQueue.clear();
-	transparentQueue.clear();
+	renderQueue.clear();
 
 	Mxm::Vec3 cameraWorldPos = camera->transform().getWorldPosition();
 	
@@ -117,44 +109,14 @@ void Application::renderOpaqueTransparent(GameObject* camera) {
 		uint64_t batchKey = (reinterpret_cast<uintptr_t>(mesh_ptr->getData()) ^ material_ptr->generateSignature()) * 0xbf58476d1ce4e5b9ULL;
 		
 		if (material_ptr->getColor().a() == 255) {
-			opaqueQueue.push_back({mesh_ptr, material_ptr, &obj->transform().getWorldMatrix(), batchKey});
-		} 
-		else {
-			float distToCamera = (cameraWorldPos - obj->transform().getWorldPosition()).length2();
-			transparentQueue.push_back({mesh_ptr, material_ptr, &obj->transform().getWorldMatrix(), batchKey, distToCamera});
+			renderQueue[mesh_ptr->getRenderOrder()].push_back({mesh_ptr, material_ptr, &obj->transform().getWorldMatrix(), 0.0f, batchKey});
+		} else {
+		    float distToCamera = (cameraWorldPos - obj->transform().getWorldPosition()).length2();
+			renderQueue[mesh_ptr->getRenderOrder()].push_back({mesh_ptr, material_ptr, &obj->transform().getWorldMatrix(), distToCamera, batchKey});
 		}
 	}
-
-	std::sort(opaqueQueue.begin(), opaqueQueue.end(), [](const OpaqueRenderItem& ren1, const OpaqueRenderItem& ren2) {
-		return ren1.batchKey < ren2.batchKey;
-	});
-	std::sort(transparentQueue.begin(), transparentQueue.end(), [](const TransparentRenderItem& ren1, const TransparentRenderItem& ren2) {
-		return ren1.distance > ren2.distance;
-	});
 
 	static std::vector<Mxm::Mat4> matrixBatch;
-	
-	if (!opaqueQueue.empty()) {
-		matrixBatch.clear();
-		uint64_t currentBatchKey = opaqueQueue[0].batchKey;
-    	const MeshComponent* currentMesh = opaqueQueue[0].meshComp;
-     	const Material* currentMaterial = opaqueQueue[0].materialComp;
-	
-		for (const OpaqueRenderItem& ren : opaqueQueue) {
-			if (currentBatchKey != ren.batchKey) {
-				_meshRenderer->drawMeshInstanced(matrixBatch, currentMesh, currentMaterial);
-				matrixBatch.clear();
-	
-				currentBatchKey = ren.batchKey;
-				currentMesh = ren.meshComp;
-				currentMaterial = ren.materialComp;
-			}
-			matrixBatch.push_back(*ren.worldMatrix);
-		}
-		if (!matrixBatch.empty()) {
-        	_meshRenderer->drawMeshInstanced(matrixBatch, currentMesh, currentMaterial);
-		}
-	}
 
 	for (const auto& obj : activeScene->getGameObjects()) {
 		if (!obj->getActive()) continue;
@@ -163,28 +125,47 @@ void Application::renderOpaqueTransparent(GameObject* camera) {
 		if (!skybox_ptr) continue;
 
 		_meshRenderer->drawSkyBox(skybox_ptr);
+		break;
 	}
+	
+	for (auto& [order, itemVec] : renderQueue) {
+	    if (itemVec.empty()) continue;
+		_meshRenderer->clearDepth();
 
-	if (!transparentQueue.empty()) {
+		std::sort(itemVec.begin(), itemVec.end(), [](const RenderItem& ren1, const RenderItem& ren2) {
+            bool isTrans1 = ren1.materialComp->getColor().a() < 255;
+            bool isTrans2 = ren2.materialComp->getColor().a() < 255;
+
+            if (isTrans1 != isTrans2) {
+                return !isTrans1;
+            }
+
+            if (!isTrans1) {
+                return ren1.batchKey < ren2.batchKey;
+            }
+
+            return ren1.distance > ren2.distance;
+		});
+		
 		matrixBatch.clear();
-		uint64_t currentBatchKey = transparentQueue[0].batchKey;
-    	const MeshComponent* currentMesh = transparentQueue[0].meshComp;
-     	const Material* currentMaterial = transparentQueue[0].materialComp;
+		uint64_t currentBatchKey = itemVec[0].batchKey;
+    	const MeshComponent* currentMesh = itemVec[0].meshComp;
+        const Material* currentMaterial = itemVec[0].materialComp;
 	
-		for (const TransparentRenderItem& ren : transparentQueue) {
-			if (currentBatchKey != ren.batchKey) {
-				_meshRenderer->drawMeshInstanced(matrixBatch, currentMesh, currentMaterial);
-				matrixBatch.clear();
+        for (const RenderItem& ren : itemVec) {
+            if (currentBatchKey != ren.batchKey) {
+                _meshRenderer->drawMeshInstanced(matrixBatch, currentMesh, currentMaterial);
+                matrixBatch.clear();
 	
-				currentBatchKey = ren.batchKey;
-				currentMesh = ren.meshComp;
-				currentMaterial = ren.materialComp;
-			}
-			matrixBatch.push_back(*ren.worldMatrix);
-		}
-		if (!matrixBatch.empty()) {
-        	_meshRenderer->drawMeshInstanced(matrixBatch, currentMesh, currentMaterial);
-		}
+                currentBatchKey = ren.batchKey;
+                currentMesh = ren.meshComp;
+                currentMaterial = ren.materialComp;
+            }
+            matrixBatch.push_back(*ren.worldMatrix);
+        }
+        if (!matrixBatch.empty()) {
+           	_meshRenderer->drawMeshInstanced(matrixBatch, currentMesh, currentMaterial);
+        }
 	}
 }
 

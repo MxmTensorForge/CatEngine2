@@ -108,6 +108,9 @@ void MeshRenderer::clear(Color color) const noexcept {
 	glClearColor(color.rf(), color.gf(), color.bf(), 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
+void MeshRenderer::clearDepth() const noexcept {
+	glClear(GL_DEPTH_BUFFER_BIT);
+}
 void MeshRenderer::viewport(GLsizei width, GLsizei height) const noexcept {
 	glViewport(0, 0, width, height);
 }
@@ -171,6 +174,8 @@ void MeshRenderer::drawSkyBox(const SkyBox* skybox) {
     _skyboxShader->setUniform("uSkyBox", 0);
 
     glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
     glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
 }

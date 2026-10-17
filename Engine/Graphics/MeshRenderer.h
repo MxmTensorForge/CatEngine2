@@ -40,6 +40,7 @@ public:
 		const std::vector<PointLight*>& pointLights, const DirectionLight* directionLight);
 
 	void clear(Color color) const noexcept;
+	void clearDepth() const noexcept;
 	void viewport(GLsizei width, GLsizei height) const noexcept;
 
 	void setDrawFrame(bool state) const noexcept;

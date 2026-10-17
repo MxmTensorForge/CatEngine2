@@ -51,3 +51,8 @@ void Camera::setOrthographic() noexcept {
 	_isOrtho = true;
 	dirtyProjection();
 }
+
+Mxm::Mat4 Camera::getInverseProjection() const noexcept {
+    if (!_isOrtho) return Mxm::Mat4::invPerspective(_fov, _aspect, _zNear, _zFar);
+    return Mxm::Mat4::identity(); //ЗАГЛУШКА!!!
+}

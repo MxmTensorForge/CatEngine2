@@ -15,6 +15,7 @@ class MeshComponent final : public Component
 {
 private:
 	MeshData* _mesh;
+	int _renderOrder = 0;
 public:
 	MeshComponent(const std::string& modelName);
 	void setModelName(const std::string& modelName) noexcept;
@@ -25,6 +26,9 @@ public:
 	MeshData* getData() const noexcept { return _mesh; }
 
 	bool intersection(const Mxm::Vec3& origin, const Mxm::Vec3& dir, IntersectionInfo& out);
+
+	void setRenderOrder(int value) noexcept { _renderOrder = value; }
+	int getRenderOrder() const noexcept { return _renderOrder; }
 };
 
 #endif

@@ -59,6 +59,7 @@ namespace Mxm
         static Mat4 translation(float tx, float ty, float tz) noexcept;
         static Mat4 translation(const Vec3& tv) noexcept;
         static Mat4 perspective(float fov, float aspect, float near, float far) noexcept;
+        static Mat4 invPerspective(float fov, float aspect, float near, float far) noexcept;
         static Mat4 ortho(float r, float l, float t, float b, float n, float f) noexcept;
         static Mat4 view(const Vec3& right, const Vec3& up, const Vec3& forward, const Vec3& pos);
         static Mat4 view(const Vec3& forward, const Vec3& pos);

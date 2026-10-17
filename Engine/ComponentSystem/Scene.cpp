@@ -166,6 +166,7 @@ bool Scene::rayCast(const Mxm::Vec3& origin, const Mxm::Vec3& dir, IntersectionI
         Mxm::Vec3 invOrigin = (inverseModel * Mxm::Vec4(origin, 1.0f)).toVec3();
         Mxm::Vec3 invDir = (inverseModel * Mxm::Vec4(dir, 0.0f)).toVec3();
 
+        collider_ptr->recaclAABB();
         if (!collider_ptr->getLocalAABB().isIntersection(invOrigin, invDir)) continue;
 
         if (mesh_ptr->intersection(invOrigin, invDir, temp)) {

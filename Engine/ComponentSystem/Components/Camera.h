@@ -40,6 +40,8 @@ public:
 
 	void setPerspective() noexcept;
 	void setOrthographic() noexcept;
+
+	Mxm::Mat4 getInverseProjection() const noexcept;
 };
 
 #endif

@@ -274,6 +274,17 @@ namespace Mxm
             0, 0, 1, 0
         );
     }
+    inline Mat4 Mat4::invPerspective(float fov, float aspect, float near, float far) noexcept {
+        float tanHalfFov = tanf(fov * Mxm::Consts::DEG2RAD / 2.0f);
+        float zDist = far - near;
+        return Mat4(
+            (aspect * tanHalfFov), 0, 0, 0,
+            0, tanHalfFov, 0, 0,
+            0, 0, 0, 1,
+            0, 0, -(zDist / (near * far)), (far / (near * far))
+        );
+    }
+
     inline Mat4 Mat4::ortho(float r, float l, float t, float b, float n, float f) noexcept {
         return Mat4(
             2.0f / (r - l), 0, 0, (-r - l) / (r - l),

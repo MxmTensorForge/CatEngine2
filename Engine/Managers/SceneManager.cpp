@@ -39,8 +39,8 @@ void SceneManager::processPendingScene() {
 	for (const auto& s : _scenes) {
 		Scene* scenePtr = s.second.get();
 		if (scenePtr == _pendingActiveScene) {
+		    _activeSceneName = s.first;
 			scenePtr->start();
-			_activeSceneName = s.first;
 			Logger::getInstance().log(LogType::Message, "Scene index activated: " + _activeSceneName);
 			break;
 		}

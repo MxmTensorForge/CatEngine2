@@ -22,8 +22,6 @@ void PhysicsSystem::processCollisionPair(const CachedObject& obj1, const CachedO
     bool obj1IsTrigger = collider1->isTrigger();
     bool obj2IsTrigger = collider2->isTrigger();
 
-    if (obj1IsTrigger && obj2IsTrigger) return;
-
     if (!Collider::checkAABB(collider1, collider2)) return;
     
     auto collision = CollisionSystem::getInstance().gjkCollision(collider1, collider2);
@@ -86,7 +84,9 @@ void PhysicsSystem::update(const std::vector<std::unique_ptr<GameObject>>& gameO
         if (!obj->getActive()) continue;
 
         auto collider = obj->getComponent<Collider>();
+        
         if (!collider) continue;
+        if (collider->isOnlyRaycast()) continue;
 
         if (obj->rigidBody()) obj->rigidBody()->setIsCollision(false);
         _cachedObjects.push_back({ obj.get(), collider});
