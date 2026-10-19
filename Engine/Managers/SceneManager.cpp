@@ -22,7 +22,7 @@ void SceneManager::setActiveScene(const std::string& name) {
 }
 
 Scene* SceneManager::getActiveScene() const {
-	return getScene(_activeSceneName);
+	return _pendingActiveScene ? _pendingActiveScene : getScene(_activeSceneName);
 }
 Scene* SceneManager::getScene(const std::string& name) const {
 	auto scene = _scenes.find(name);

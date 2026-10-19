@@ -5,13 +5,14 @@
 		: w{w}, x{x}, y{y}, z{z} {}
 
 	inline Quat Quat::operator*(const Quat& other) const noexcept {
-		return Quat(
-			w * other.w - x * other.x - y * other.y - z * other.z,
-			w * other.x + x * other.w + y * other.z - z * other.y,
-			w * other.y + x * other.z + y * other.w - z * other.x,
-			w * other.z + x * other.y - y * other.x + z * other.w
-		);
+        return Quat(
+            w * other.w - x * other.x - y * other.y - z * other.z,
+            w * other.x + x * other.w + y * other.z - z * other.y,
+            w * other.y - x * other.z + y * other.w + z * other.x,
+            w * other.z + x * other.y - y * other.x + z * other.w 
+        );
 	}
+
 	inline Quat Quat::operator+(const Quat& other) const noexcept {
 		return Quat(
 			w + other.w, x + other.x, y + other.y, z + other.z
